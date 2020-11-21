@@ -1,0 +1,52 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: chat-app-mysql
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: chat-app
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    networks:
+      - chat-app
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chat-app-server
+    volumes:
+      - ../:/var/www/html
+      - ./apache/000-default.conf:/etc/apache2/sites-enabled/000-default.conf
+      - ./apache/apache2.conf:/etc/apache2/apache2.conf
+    ports:
+      - ${APP_PORT}:80
+    depends_on:
+      - mysql
+    networks:
+      - chat-app
+
+  composer:
+    image: composer:2
+    container_name: composer
+    tty: true
+    volumes:
+      - ../:/var/www/html
+      - tmp_composer:/tmp
+    working_dir: /var/www/html
+
+volumes:
+  db_data:
+  tmp_composer:
+
+networks:
+  chat-app:
